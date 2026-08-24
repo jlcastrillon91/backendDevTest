@@ -1,54 +1,161 @@
-openapi: 3.0.0
+openapi: 3.0.3
+
 info:
-  title: SimilarProducts
-  version: '1.0'
+  title: Similar Products API
+  description: |
+    Returns product details for products similar to a requested product.
+
+    Similarity order is preserved in the response. Product information is
+    obtained from the existing Products API.
+  version: '1.0.0'
+
 servers:
-  - url: 'http://localhost:5000'
+  - url: http://localhost:5000
+    description: Local development
+
+tags:
+  - name: Similar Products
+    description: Product similarity queries
+
 paths:
-  '/product/{productId}/similar':
-    parameters:
-      - schema:
-          type: string
-        name: productId
-        in: path
-        required: true
+  /product/{productId}/similar:
     get:
       operationId: get-product-similar
-      summary: Similar products
+      summary: Get similar products
+      description: |
+        Finds the products related to `productId` and returns their details in
+        similarity order. An empty list is a valid response.
+      tags:
+        - Similar Products
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
       responses:
         '200':
-          description: OK
+          description: Similar products returned successfully
           content:
             application/json:
               schema:
-                 $ref: '#/components/schemas/SimilarProducts'
+                $ref: '#/components/schemas/SimilarProducts'
+              examples:
+                productsFound:
+                  summary: Similar products found
+                  value:
+                    - id: '2'
+                      name: Dress
+                      price: 19.99
+                      availability: true
+                    - id: '3'
+                      name: Blazer
+                      price: 29.99
+                      availability: false
+                noSimilarProducts:
+                  summary: No similar products
+                  value: []
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '404':
-          description: Product Not found
+          $ref: '#/components/responses/ProductNotFound'
+        '502':
+          $ref: '#/components/responses/ProductApiError'
+        '504':
+          $ref: '#/components/responses/ProductApiTimeout'
+
 components:
+  parameters:
+    ProductId:
+      name: productId
+      in: path
+      required: true
+      description: Identifier of the product currently being viewed
+      schema:
+        type: string
+        minLength: 1
+      example: '1'
+
   schemas:
     SimilarProducts:
       type: array
-      description: 'List of similar products to a given one ordered by similarity'
+      description: Unique product details ordered by similarity
       minItems: 0
       uniqueItems: true
       items:
         $ref: '#/components/schemas/ProductDetail'
+
     ProductDetail:
-      description: 'Product detail'
       type: object
-      properties:
-        id:
-          type: string
-          minLength: 1
-        name:
-          type: string
-          minLength: 1
-        price:
-          type: number
-        availability:
-          type: boolean
+      description: Product detail
       required:
         - id
         - name
         - price
         - availability
+      properties:
+        id:
+          type: string
+          minLength: 1
+          example: '2'
+        name:
+          type: string
+          minLength: 1
+          example: Dress
+        price:
+          type: number
+          example: 19.99
+        availability:
+          type: boolean
+          example: true
+
+    ApiError:
+      type: object
+      description: Controlled API error
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: PRODUCT_NOT_FOUND
+        message:
+          type: string
+          example: Product 'unknown' was not found
+
+  responses:
+    BadRequest:
+      description: The product identifier is invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: INVALID_PRODUCT
+            message: Product ID must not be blank
+
+    ProductNotFound:
+      description: The requested product was not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: PRODUCT_NOT_FOUND
+            message: Product 'unknown' was not found
+
+    ProductApiError:
+      description: The existing Products API failed or returned an invalid product
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: PRODUCT_API_ERROR
+            message: Product API returned HTTP 500
+
+    ProductApiTimeout:
+      description: The existing Products API exceeded the configured timeout
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: PRODUCT_API_TIMEOUT
+            message: Product API request timed out

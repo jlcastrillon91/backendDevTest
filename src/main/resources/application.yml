@@ -1,0 +1,12 @@
+server:
+  port: 5000
+
+clients:
+  product-api:
+    base-url: ${PRODUCT_API_BASE_URL:http://localhost:3001}
+    connect-timeout: ${PRODUCT_API_CONNECT_TIMEOUT:1s}
+    read-timeout: ${PRODUCT_API_READ_TIMEOUT:10s}
+
+springdoc:
+  swagger-ui:
+    url: /openapi/similarProducts.yaml
