@@ -37,6 +37,10 @@ public final class GetSimilarProductsService implements GetSimilarProductsUseCas
         return detailRequests.stream().map(this::await).toList();
     }
 
+    /**
+     * Resolves each concurrent detail request in similarity order and translates
+     * the checked {@link Future} failures into application-level exceptions.
+     */
     private Product await(Future<Product> request) {
         try {
             return request.get();
